@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || '';
+const RAW_SERVER_URL = import.meta.env.VITE_SERVER_URL || '';
+const SERVER_URL = RAW_SERVER_URL.replace(/\/+$/, '');
 
 let socketInstance: Socket | null = null;
 

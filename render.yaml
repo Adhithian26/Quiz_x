@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: quizx-server
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build --workspace=@quizx/shared && npm run build --workspace=@quizx/server
+    startCommand: npm run start --workspace=@quizx/server
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CLIENT_URL
+        sync: false
+      - key: HOST_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
