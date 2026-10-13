@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getSocket } from '../services/socket';
-import { fetchQuizzes, verifyHostSecret, getExportCsvUrl } from '../services/api';
+import { fetchQuizzes, verifyHostSecret, getExportCsvUrl, deleteQuiz, saveQuiz } from '../services/api';
 import { Navbar } from '../components/Navbar';
 import { Leaderboard } from '../components/Leaderboard';
+import { QuizEditorModal } from '../components/QuizEditorModal';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   Quiz,
@@ -28,7 +29,12 @@ import {
   Check,
   X,
   RefreshCw,
-  Clock
+  Clock,
+  Plus,
+  Edit3,
+  Trash2,
+  Copy,
+  Sparkles
 } from 'lucide-react';
 
 export const HostDashboard: React.FC = () => {
@@ -53,6 +59,61 @@ export const HostDashboard: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [revealStats, setRevealStats] = useState<QuestionStats | null>(null);
   const [correctOption, setCorrectOption] = useState<string | null>(null);
+
+  // Dynamic Quiz Editor State
+  const [isEditorOpen, setIsEditorOpen] = useState<boolean>(false);
+  const [quizToEdit, setQuizToEdit] = useState<Quiz | null>(null);
+
+  const handleCreateNewQuiz = () => {
+    setQuizToEdit(null);
+    setIsEditorOpen(true);
+  };
+
+  const handleEditQuiz = (e: React.MouseEvent, q: Quiz) => {
+    e.stopPropagation();
+    setQuizToEdit(q);
+    setIsEditorOpen(true);
+  };
+
+  const handleDuplicateQuiz = async (e: React.MouseEvent, q: Quiz) => {
+    e.stopPropagation();
+    const duplicated: Quiz = {
+      title: `${q.title} (Copy)`,
+      description: q.description || '',
+      status: 'published',
+      questions: (q.questions || []).map(item => ({
+        ...item,
+        id: undefined,
+        quiz_id: undefined
+      }))
+    };
+    try {
+      const saved = await saveQuiz(duplicated, hostSecret);
+      await loadQuizzes();
+      setSelectedQuiz(saved);
+    } catch (err: any) {
+      alert(err.message || 'Failed to duplicate quiz');
+    }
+  };
+
+  const handleDeleteQuiz = async (e: React.MouseEvent, quizId: string) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this quiz?')) return;
+    try {
+      await deleteQuiz(quizId, hostSecret);
+      if (selectedQuiz?.id === quizId) {
+        setSelectedQuiz(null);
+      }
+      await loadQuizzes();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete quiz');
+    }
+  };
+
+  const handleQuizSaved = (saved: Quiz) => {
+    loadQuizzes();
+    setSelectedQuiz(saved);
+  };
 
   // Authenticate host
   const handleAuth = async (e?: React.FormEvent) => {
@@ -529,18 +590,26 @@ export const HostDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-7 space-y-6">
               <div className="glass-panel p-6 rounded-3xl border border-brand-border space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h2 className="text-xl font-bold text-white font-display">Available Quizzes</h2>
-                    <p className="text-xs text-slate-400">Select a quiz to launch in the arena</p>
+                    <p className="text-xs text-slate-400">Select, create, or customize dynamic quizzes</p>
                   </div>
-                  <button
-                    onClick={loadQuizzes}
-                    className="p-2 rounded-xl bg-brand-surface text-slate-300 hover:text-white hover:bg-brand-surface/80"
-                    title="Refresh quizzes"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleCreateNewQuiz}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-bold hover:opacity-95 shadow-md shadow-brand-violet/25 transition-all"
+                    >
+                      <Plus className="w-4 h-4" /> Create Dynamic Quiz
+                    </button>
+                    <button
+                      onClick={loadQuizzes}
+                      className="p-2 rounded-xl bg-brand-surface text-slate-300 hover:text-white hover:bg-brand-surface/80"
+                      title="Refresh quizzes"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 {loadingQuizzes ? (
@@ -559,11 +628,41 @@ export const HostDashboard: React.FC = () => {
                               : 'bg-brand-surface/30 border-brand-border/60 hover:border-brand-border'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-bold text-base text-white">{q.title}</h3>
-                            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-brand-surface border border-brand-border text-brand-cyan">
-                              {(q.questions || []).length} questions
-                            </span>
+                          <div className="flex items-center justify-between gap-3">
+                            <h3 className="font-bold text-base text-white truncate">{q.title}</h3>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-brand-surface border border-brand-border text-brand-cyan">
+                                {(q.questions || []).length} questions
+                              </span>
+
+                              {/* Quiz Actions */}
+                              <button
+                                type="button"
+                                onClick={(e) => handleEditQuiz(e, q)}
+                                className="p-1.5 rounded-lg bg-brand-surface/80 hover:bg-brand-surface text-slate-300 hover:text-white border border-brand-border/60 transition-colors"
+                                title="Edit Quiz & Questions"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => handleDuplicateQuiz(e, q)}
+                                className="p-1.5 rounded-lg bg-brand-surface/80 hover:bg-brand-surface text-slate-300 hover:text-brand-cyan border border-brand-border/60 transition-colors"
+                                title="Duplicate Quiz"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteQuiz(e, q.id!)}
+                                className="p-1.5 rounded-lg bg-brand-surface/80 hover:bg-brand-surface text-slate-400 hover:text-brand-rose border border-brand-border/60 transition-colors"
+                                title="Delete Quiz"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                           {q.description && (
                             <p className="text-xs text-slate-300 mt-1 line-clamp-2">{q.description}</p>
@@ -619,6 +718,15 @@ export const HostDashboard: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Dynamic Quiz Editor Modal */}
+      <QuizEditorModal
+        isOpen={isEditorOpen}
+        quiz={quizToEdit}
+        hostSecret={hostSecret}
+        onClose={() => setIsEditorOpen(false)}
+        onSaved={handleQuizSaved}
+      />
     </div>
   );
 };
