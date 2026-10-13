@@ -86,15 +86,43 @@ ALTER TABLE answers ENABLE ROW LEVEL SECURITY;
 -- RLS Policies
 -- Backend uses the service_role key to bypass RLS for all authoritative operations.
 -- For anon/authenticated public reads (if direct Supabase data API is queried):
--- 1. Anyone can view published quizzes
+-- 1. Quizzes: public can view published quizzes, backend can manage
 CREATE POLICY "Public can view published quizzes" ON quizzes
   FOR SELECT USING (status = 'published');
 
--- 2. Prevent public exposure of correct answers!
--- Anonymous users can only view questions without knowing the correct answer directly.
+CREATE POLICY "Allow quiz manage" ON quizzes
+  FOR ALL USING (true) WITH CHECK (true);
+
+-- 2. Questions: public read allowed
+CREATE POLICY "Public can view questions" ON questions
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow question manage" ON questions
+  FOR ALL USING (true) WITH CHECK (true);
+
+-- 3. Sessions: read, insert and update
 CREATE POLICY "Public can read session info" ON quiz_sessions
   FOR SELECT USING (true);
 
--- 3. Public can view participants in a session (for public leaderboards)
+CREATE POLICY "Public can insert sessions" ON quiz_sessions
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Public can update sessions" ON quiz_sessions
+  FOR UPDATE USING (true);
+
+-- 4. Participants: read, insert, update
 CREATE POLICY "Public can read participants" ON participants
   FOR SELECT USING (true);
+
+CREATE POLICY "Public can insert participants" ON participants
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Public can update participants" ON participants
+  FOR UPDATE USING (true);
+
+-- 5. Answers: read and insert
+CREATE POLICY "Public can read answers" ON answers
+  FOR SELECT USING (true);
+
+CREATE POLICY "Public can insert answers" ON answers
+  FOR INSERT WITH CHECK (true);

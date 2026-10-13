@@ -12,7 +12,9 @@ const EnvSchema = z.object({
   CLIENT_URL: z.string().default('http://localhost:3000'),
   HOST_SECRET: z.string().min(4).default('quizx-host-2026'),
   SUPABASE_URL: z.string().url().optional().or(z.literal('')),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(10).optional().or(z.literal(''))
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional().or(z.literal('')),
+  SUPABASE_KEY: z.string().optional().or(z.literal('')),
+  SUPABASE_PUBLISHABLE_KEY: z.string().optional().or(z.literal(''))
 });
 
 const parsed = EnvSchema.safeParse(process.env);
@@ -22,12 +24,14 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+const supabaseKey = parsed.data.SUPABASE_SERVICE_ROLE_KEY || parsed.data.SUPABASE_KEY || parsed.data.SUPABASE_PUBLISHABLE_KEY || '';
+
 export const config = {
   port: parsed.data.PORT,
   nodeEnv: parsed.data.NODE_ENV,
   clientUrl: parsed.data.CLIENT_URL,
   hostSecret: parsed.data.HOST_SECRET,
   supabaseUrl: parsed.data.SUPABASE_URL || undefined,
-  supabaseServiceRoleKey: parsed.data.SUPABASE_SERVICE_ROLE_KEY || undefined,
-  hasSupabase: Boolean(parsed.data.SUPABASE_URL && parsed.data.SUPABASE_SERVICE_ROLE_KEY)
+  supabaseServiceRoleKey: supabaseKey || undefined,
+  hasSupabase: Boolean(parsed.data.SUPABASE_URL && supabaseKey)
 };
