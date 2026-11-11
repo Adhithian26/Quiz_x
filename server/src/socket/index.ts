@@ -26,6 +26,21 @@ export function setupSocketHandlers(io: SocketIOServer, sessionManager: SessionM
   io.on('connection', (socket: Socket) => {
     let authenticatedHost = false;
 
+    // Check handshake auth
+    const handshakeSecret = (socket.handshake.auth as any)?.hostSecret || (socket.handshake.query as any)?.hostSecret;
+    if (handshakeSecret && handshakeSecret === config.hostSecret) {
+      authenticatedHost = true;
+    }
+
+    const checkHostAuth = (payload?: any): boolean => {
+      if (authenticatedHost) return true;
+      if (payload?.hostSecret && payload.hostSecret === config.hostSecret) {
+        authenticatedHost = true;
+        return true;
+      }
+      return false;
+    };
+
     // ==========================================
     // HOST HANDLERS
     // ==========================================
@@ -39,8 +54,8 @@ export function setupSocketHandlers(io: SocketIOServer, sessionManager: SessionM
       if (callback) callback({ success: true, message: 'Host authenticated' });
     });
 
-    socket.on('host:create_session', async (payload: { quizId: string }, callback?: Function) => {
-      if (!authenticatedHost) {
+    socket.on('host:create_session', async (payload: { quizId: string; hostSecret?: string }, callback?: Function) => {
+      if (!checkHostAuth(payload)) {
         if (callback) callback({ success: false, message: 'Unauthorized' });
         return;
       }
@@ -62,8 +77,8 @@ export function setupSocketHandlers(io: SocketIOServer, sessionManager: SessionM
       }
     });
 
-    socket.on('host:join_room', (payload: { roomCode: string }, callback?: Function) => {
-      if (!authenticatedHost) {
+    socket.on('host:join_room', (payload: { roomCode: string; hostSecret?: string }, callback?: Function) => {
+      if (!checkHostAuth(payload)) {
         if (callback) callback({ success: false, message: 'Unauthorized' });
         return;
       }
@@ -87,8 +102,8 @@ export function setupSocketHandlers(io: SocketIOServer, sessionManager: SessionM
       }
     });
 
-    socket.on('host:start_question', async (payload: { roomCode: string; questionIndex?: number }, callback?: Function) => {
-      if (!authenticatedHost) {
+    socket.on('host:start_question', async (payload: { roomCode: string; questionIndex?: number; hostSecret?: string }, callback?: Function) => {
+      if (!checkHostAuth(payload)) {
         if (callback) callback({ success: false, message: 'Unauthorized' });
         return;
       }
@@ -113,8 +128,8 @@ export function setupSocketHandlers(io: SocketIOServer, sessionManager: SessionM
       }
     });
 
-    socket.on('host:close_question', async (payload: { roomCode: string }, callback?: Function) => {
-      if (!authenticatedHost) {
+    socket.on('host:close_question', async (payload: { roomCode: string; hostSecret?: string }, callback?: Function) => {
+      if (!checkHostAuth(payload)) {
         if (callback) callback({ success: false, message: 'Unauthorized' });
         return;
       }
@@ -131,8 +146,8 @@ export function setupSocketHandlers(io: SocketIOServer, sessionManager: SessionM
       }
     });
 
-    socket.on('host:reveal_answer', async (payload: { roomCode: string }, callback?: Function) => {
-      if (!authenticatedHost) {
+    socket.on('host:reveal_answer', async (payload: { roomCode: string; hostSecret?: string }, callback?: Function) => {
+      if (!checkHostAuth(payload)) {
         if (callback) callback({ success: false, message: 'Unauthorized' });
         return;
       }
@@ -155,8 +170,8 @@ export function setupSocketHandlers(io: SocketIOServer, sessionManager: SessionM
       }
     });
 
-    socket.on('host:show_leaderboard', async (payload: { roomCode: string }, callback?: Function) => {
-      if (!authenticatedHost) {
+    socket.on('host:show_leaderboard', async (payload: { roomCode: string; hostSecret?: string }, callback?: Function) => {
+      if (!checkHostAuth(payload)) {
         if (callback) callback({ success: false, message: 'Unauthorized' });
         return;
       }
@@ -175,8 +190,8 @@ export function setupSocketHandlers(io: SocketIOServer, sessionManager: SessionM
       }
     });
 
-    socket.on('host:end_quiz', async (payload: { roomCode: string }, callback?: Function) => {
-      if (!authenticatedHost) {
+    socket.on('host:end_quiz', async (payload: { roomCode: string; hostSecret?: string }, callback?: Function) => {
+      if (!checkHostAuth(payload)) {
         if (callback) callback({ success: false, message: 'Unauthorized' });
         return;
       }

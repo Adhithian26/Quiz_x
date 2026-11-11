@@ -7,10 +7,12 @@ let socketInstance: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socketInstance) {
+    const savedSecret = typeof window !== 'undefined' ? sessionStorage.getItem('quizx_hostSecret') || '' : '';
     socketInstance = io(SERVER_URL, {
       transports: ['websocket', 'polling'],
+      auth: { hostSecret: savedSecret },
       autoConnect: true,
-      reconnectionAttempts: 15,
+      reconnectionAttempts: 25,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 10000

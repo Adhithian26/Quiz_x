@@ -176,11 +176,29 @@ export const HostDashboard: React.FC = () => {
     };
   }, [socket]);
 
+  // Re-authenticate host and re-join room on socket reconnect
+  useEffect(() => {
+    if (!socket) return;
+    const onConnect = () => {
+      if (hostSecret) {
+        socket.emit('host:auth', { hostSecret }, (res: any) => {
+          if (res?.success && roomCode) {
+            socket.emit('host:join_room', { roomCode, hostSecret });
+          }
+        });
+      }
+    };
+    socket.on('connect', onConnect);
+    return () => {
+      socket.off('connect', onConnect);
+    };
+  }, [socket, hostSecret, roomCode]);
+
   // Create & Launch Session
   const handleCreateSession = () => {
     if (!selectedQuiz) return;
 
-    socket.emit('host:create_session', { quizId: selectedQuiz.id }, (res: any) => {
+    socket.emit('host:create_session', { quizId: selectedQuiz.id, hostSecret }, (res: any) => {
       if (res && res.success) {
         setRoomCode(res.roomCode);
         setSessionId(res.session.id);
@@ -200,7 +218,7 @@ export const HostDashboard: React.FC = () => {
     if (!roomCode || !selectedQuiz) return;
     const targetIdx = idx !== undefined ? idx : currentQuestionIndex + 1;
 
-    socket.emit('host:start_question', { roomCode, questionIndex: targetIdx }, (res: any) => {
+    socket.emit('host:start_question', { roomCode, questionIndex: targetIdx, hostSecret }, (res: any) => {
       if (res && res.success) {
         setCurrentQuestionIndex(targetIdx);
         setSessionStatus('question_active');
@@ -215,7 +233,7 @@ export const HostDashboard: React.FC = () => {
   // Close Question
   const handleCloseQuestion = () => {
     if (!roomCode) return;
-    socket.emit('host:close_question', { roomCode }, (res: any) => {
+    socket.emit('host:close_question', { roomCode, hostSecret }, (res: any) => {
       if (res && res.success) {
         setSessionStatus('question_closed');
       }
@@ -225,7 +243,7 @@ export const HostDashboard: React.FC = () => {
   // Reveal Answer
   const handleRevealAnswer = () => {
     if (!roomCode) return;
-    socket.emit('host:reveal_answer', { roomCode }, (res: any) => {
+    socket.emit('host:reveal_answer', { roomCode, hostSecret }, (res: any) => {
       if (res && res.success) {
         setSessionStatus('question_revealed');
         setCorrectOption(res.correctOption);
@@ -237,7 +255,7 @@ export const HostDashboard: React.FC = () => {
   // Show Leaderboard
   const handleShowLeaderboard = () => {
     if (!roomCode) return;
-    socket.emit('host:show_leaderboard', { roomCode }, (res: any) => {
+    socket.emit('host:show_leaderboard', { roomCode, hostSecret }, (res: any) => {
       if (res && res.success) {
         setSessionStatus('leaderboard');
         setLeaderboard(res.leaderboard);
@@ -250,7 +268,7 @@ export const HostDashboard: React.FC = () => {
     if (!roomCode) return;
     if (!confirm('Are you sure you want to end the quiz and show final podium results?')) return;
 
-    socket.emit('host:end_quiz', { roomCode }, (res: any) => {
+    socket.emit('host:end_quiz', { roomCode, hostSecret }, (res: any) => {
       if (res && res.success) {
         setSessionStatus('finished');
         setLeaderboard(res.result.leaderboard);
