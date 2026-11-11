@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Quiz, Question, OptionKey, QuestionOption } from '@quizx/shared';
 import { saveQuiz } from '../services/api';
+import { QuizImportModal } from './QuizImportModal';
+import { ParsedQuizResult } from '../utils/quizParser';
 import {
   X,
   Plus,
@@ -14,7 +16,8 @@ import {
   HelpCircle,
   Sparkles,
   AlertCircle,
-  Save
+  Save,
+  FileText
 } from 'lucide-react';
 
 interface QuizEditorModalProps {
@@ -59,6 +62,7 @@ export const QuizEditorModal: React.FC<QuizEditorModalProps> = ({
   const [questions, setQuestions] = useState<Question[]>([createEmptyQuestion(1)]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -143,6 +147,26 @@ export const QuizEditorModal: React.FC<QuizEditorModalProps> = ({
 
     setQuestions(list.map((q, i) => ({ ...q, question_order: i + 1 })));
     setActiveIdx(targetIdx);
+  };
+
+  const handleImport = (result: ParsedQuizResult, mode: 'replace' | 'append') => {
+    if (result.title && (!title || mode === 'replace')) {
+      setTitle(result.title);
+    }
+    if (result.description && (!description || mode === 'replace')) {
+      setDescription(result.description);
+    }
+
+    if (mode === 'replace') {
+      setQuestions(result.questions.map((q, idx) => ({ ...q, question_order: idx + 1 })));
+      setActiveIdx(0);
+    } else {
+      setQuestions((prev) => {
+        const combined = [...prev, ...result.questions];
+        return combined.map((q, idx) => ({ ...q, question_order: idx + 1 }));
+      });
+      setActiveIdx(questions.length);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -261,17 +285,26 @@ export const QuizEditorModal: React.FC<QuizEditorModalProps> = ({
 
           {/* Question Navigator Pills */}
           <div className="border-t border-brand-border/60 pt-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Questions ({questions.length})
               </span>
-              <button
-                type="button"
-                onClick={handleAddQuestion}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-cyan/20 border border-brand-cyan/40 text-brand-cyan text-xs font-bold hover:bg-brand-cyan/30 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add Question
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsImportOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-surface border border-brand-border text-slate-200 text-xs font-bold hover:bg-brand-surface/80 hover:text-brand-cyan hover:border-brand-cyan/40 transition-all shadow-sm"
+                >
+                  <FileText className="w-3.5 h-3.5 text-brand-cyan" /> Import from Text / File
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddQuestion}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-cyan/20 border border-brand-cyan/40 text-brand-cyan text-xs font-bold hover:bg-brand-cyan/30 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Question
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
@@ -510,6 +543,12 @@ export const QuizEditorModal: React.FC<QuizEditorModalProps> = ({
           </div>
         </div>
       </div>
+
+      <QuizImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImport={handleImport}
+      />
     </div>
   );
 };
