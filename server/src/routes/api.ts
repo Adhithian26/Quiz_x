@@ -74,6 +74,7 @@ export function createApiRouter(sessionManager: SessionManager): Router {
       const saved = await db.saveQuiz(parsed.data);
       res.json({ quiz: saved });
     } catch (err: any) {
+      console.error('[API POST /api/quizzes error]:', err);
       res.status(500).json({ error: err.message });
     }
   });
