@@ -23,7 +23,8 @@ server.listen(config.port, () => {
   console.log(`=======================================================`);
   console.log(`🚀 QuizX Live Server running on port ${config.port}`);
   console.log(`📡 Environment: ${config.nodeEnv}`);
-  console.log(`🔌 Database Mode: ${config.hasSupabase ? 'Supabase PostgreSQL' : 'Local Fast Memory Adapter'}`);
+  const dbMode = config.hasMongo ? 'MongoDB Atlas' : config.hasSupabase ? 'Supabase PostgreSQL' : 'Local Fast Memory Adapter';
+  console.log(`🔌 Database Mode: ${dbMode}`);
   console.log(`🔑 Host Passcode: ${config.hostSecret}`);
   console.log(`=======================================================`);
 });

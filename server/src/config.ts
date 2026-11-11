@@ -11,6 +11,7 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   CLIENT_URL: z.string().default('http://localhost:3000'),
   HOST_SECRET: z.string().min(4).default('quizx-host-2026'),
+  MONGODB_URI: z.string().optional().or(z.literal('')),
   SUPABASE_URL: z.string().url().optional().or(z.literal('')),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional().or(z.literal('')),
   SUPABASE_KEY: z.string().optional().or(z.literal('')),
@@ -31,6 +32,8 @@ export const config = {
   nodeEnv: parsed.data.NODE_ENV,
   clientUrl: parsed.data.CLIENT_URL,
   hostSecret: parsed.data.HOST_SECRET,
+  mongoUri: parsed.data.MONGODB_URI || undefined,
+  hasMongo: Boolean(parsed.data.MONGODB_URI),
   supabaseUrl: parsed.data.SUPABASE_URL || undefined,
   supabaseServiceRoleKey: supabaseKey || undefined,
   hasSupabase: Boolean(parsed.data.SUPABASE_URL && supabaseKey)
