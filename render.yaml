@@ -16,7 +16,5 @@ services:
         sync: false
       - key: HOST_SECRET
         sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
+      - key: MONGODB_URI
         sync: false
